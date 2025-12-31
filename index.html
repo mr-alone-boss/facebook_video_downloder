@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Meta Ad Video Downloader</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+        .container {
+            background: white;
+            padding: 40px;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            max-width: 600px;
+            width: 100%;
+        }
+        h1 {
+            color: #333;
+            margin-bottom: 10px;
+            font-size: 28px;
+        }
+        p {
+            color: #666;
+            margin-bottom: 30px;
+        }
+        .input-group {
+            margin-bottom: 20px;
+        }
+        input {
+            width: 100%;
+            padding: 15px;
+            border: 2px solid #ddd;
+            border-radius: 10px;
+            font-size: 16px;
+            transition: border 0.3s;
+        }
+        input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        button {
+            width: 100%;
+            padding: 15px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 18px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+        button:hover {
+            transform: translateY(-2px);
+        }
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+        }
+        .status {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 10px;
+            display: none;
+        }
+        .status.success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .status.error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        .status.loading {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+        .download-link {
+            margin-top: 15px;
+            text-align: center;
+        }
+        .download-link a {
+            display: inline-block;
+            padding: 12px 30px;
+            background: #28a745;
+            color: white;
+            text-decoration: none;
+            border-radius: 8px;
+            font-weight: bold;
+            transition: background 0.3s;
+        }
+        .download-link a:hover {
+            background: #218838;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎬 Meta Ad Video Downloader</h1>
+        <p>Paste your Meta Ad Library link below to extract the video</p>
+        
+        <div class="input-group">
+            <input 
+                type="text" 
+                id="adUrl" 
+                placeholder="https://www.facebook.com/ads/library/?id=..." 
+                value="https://www.facebook.com/ads/library/?id=3256450231190320"
+            >
+        </div>
+        
+        <button id="downloadBtn" onclick="extractVideo()">Extract Video</button>
+        
+        <div class="status" id="status"></div>
+        <div class="download-link" id="downloadLink"></div>
+    </div>
+
+    <script>
+        async function extractVideo() {
+            const adUrl = document.getElementById('adUrl').value.trim();
+            const statusDiv = document.getElementById('status');
+            const downloadDiv = document.getElementById('downloadLink');
+            const btn = document.getElementById('downloadBtn');
+            
+            // Reset
+            downloadDiv.innerHTML = '';
+            
+            // Validation
+            if (!adUrl) {
+                showStatus('Please paste a valid Meta Ad Library link', 'error');
+                return;
+            }
+            
+            if (!adUrl.includes('facebook.com/ads/library')) {
+                showStatus('Invalid URL! Must be a Meta Ad Library link', 'error');
+                return;
+            }
+            
+            // Start loading
+            btn.disabled = true;
+            btn.textContent = 'Extracting...';
+            showStatus('🔄 Processing your request... This may take 10-30 seconds', 'loading');
+            
+            try {
+                // Call backend API
+                const response = await fetch('http://localhost:3000/extract-video', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ url: adUrl })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success && data.videoUrl) {
+                    showStatus('✅ Video extracted successfully!', 'success');
+                    downloadDiv.innerHTML = `
+                        <a href="${data.videoUrl}" download="meta-ad-video.mp4" target="_blank">
+                            📥 Download Video
+                        </a>
+                    `;
+                } else {
+                    showStatus('❌ ' + (data.error || 'Failed to extract video. Try again.'), 'error');
+                }
+            } catch (error) {
+                showStatus('❌ Error: ' + error.message + '. Make sure backend server is running!', 'error');
+            } finally {
+                btn.disabled = false;
+                btn.textContent = 'Extract Video';
+            }
+        }
+        
+        function showStatus(message, type) {
+            const statusDiv = document.getElementById('status');
+            statusDiv.textContent = message;
+            statusDiv.className = 'status ' + type;
+            statusDiv.style.display = 'block';
+        }
+        
+        // Enter key support
+        document.getElementById('adUrl').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                extractVideo();
+            }
+        });
+    </script>
+</body>
+</html>
