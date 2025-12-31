@@ -6,14 +6,6 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-app.get('/', (req, res) => {
-    res.json({ 
-        status: 'Server is running', 
-        message: 'Facebook Ad Video Downloader API',
-        endpoint: '/extract-video (POST)'
-    });
-});
-
 app.post('/extract-video', async (req, res) => {
     const { url } = req.body;
     
@@ -25,46 +17,39 @@ app.post('/extract-video', async (req, res) => {
     try {
         console.log('Launching browser...');
         
-        // FIXED: Let Puppeteer use its bundled Chromium (don't specify executablePath)
         browser = await puppeteer.launch({
-            headless: 'new',
-            args: [
-                '--no-sandbox', 
-                '--disable-setuid-sandbox',
-                '--disable-dev-shm-usage',
-                '--disable-accelerated-2d-canvas',
-                '--no-first-run',
-                '--no-zygote',
-                '--single-process',
-                '--disable-gpu',
-                '--disable-features=VizDisplayCompositor'
-            ]
+            headless: true,
+            args: ['--no-sandbox', '--disable-setuid-sandbox']
         });
         
         const page = await browser.newPage();
         let videoUrl = null;
         
-        await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36');
-        
+        // Intercept network requests
         page.on('response', async (response) => {
-            const responseUrl = response.url();
-            const contentType = response.headers()['content-type'] || '';
-            
-            if ((contentType.includes('video') || responseUrl.includes('.mp4')) 
-                && !videoUrl) {
-                videoUrl = responseUrl;
-                console.log('Video found:', videoUrl);
+            try {
+                const responseUrl = response.url();
+                const contentType = response.headers()['content-type'] || '';
+                
+                if ((contentType.includes('video') || responseUrl.includes('.mp4')) && !videoUrl) {
+                    videoUrl = responseUrl;
+                    console.log('Video found:', videoUrl);
+                }
+            } catch (e) {
+                // Ignore
             }
         });
         
         console.log('Navigating to URL...');
         await page.goto(url, { 
-            waitUntil: 'networkidle2',
+            waitUntil: 'domcontentloaded',
             timeout: 60000 
         });
         
+        // FIXED: Use setTimeout instead of waitForTimeout
         await new Promise(resolve => setTimeout(resolve, 5000));
         
+        // Try to play
         try {
             await page.evaluate(() => {
                 const video = document.querySelector('video');
@@ -72,7 +57,7 @@ app.post('/extract-video', async (req, res) => {
             });
             await new Promise(resolve => setTimeout(resolve, 3000));
         } catch (e) {
-            console.log('No video element found or already playing');
+            console.log('Play attempted');
         }
         
         await browser.close();
@@ -80,12 +65,16 @@ app.post('/extract-video', async (req, res) => {
         if (videoUrl) {
             res.json({ success: true, videoUrl: videoUrl });
         } else {
-            res.json({ success: false, error: 'No video found in this ad' });
+            res.json({ success: false, error: 'No video found' });
         }
         
     } catch (error) {
-        console.error('Error:', error);
-        if (browser) await browser.close();
+        console.error('Error:', error.message);
+        if (browser) {
+            try {
+                await browser.close();
+            } catch (e) {}
+        }
         res.json({ success: false, error: error.message });
     }
 });
