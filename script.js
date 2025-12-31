@@ -6,6 +6,15 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
+// Health check endpoint for verification
+app.get('/', (req, res) => {
+    res.json({ 
+        status: 'Server is running', 
+        message: 'Facebook Ad Video Downloader API',
+        endpoint: '/extract-video (POST)'
+    });
+});
+
 app.post('/extract-video', async (req, res) => {
     const { url } = req.body;
     
@@ -18,11 +27,20 @@ app.post('/extract-video', async (req, res) => {
         console.log('Launching browser...');
         browser = await puppeteer.launch({
             headless: true,
-            args: ['--no-sandbox', '--disable-setuid-sandbox']
+            args: [
+                '--no-sandbox', 
+                '--disable-setuid-sandbox',
+                '--disable-dev-shm-usage',
+                '--disable-accelerated-2d-canvas',
+                '--disable-gpu'
+            ]
         });
         
         const page = await browser.newPage();
         let videoUrl = null;
+        
+        // Set user agent to avoid detection
+        await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36');
         
         // Intercept network requests
         page.on('response', async (response) => {
@@ -43,7 +61,7 @@ app.post('/extract-video', async (req, res) => {
             timeout: 60000 
         });
         
-        // Wait for video to load - FIXED LINE
+        // Wait for video to load
         await new Promise(resolve => setTimeout(resolve, 5000));
         
         // Try to find and click play button if exists
@@ -52,7 +70,7 @@ app.post('/extract-video', async (req, res) => {
                 const video = document.querySelector('video');
                 if (video) video.play();
             });
-            await new Promise(resolve => setTimeout(resolve, 3000)); // FIXED LINE
+            await new Promise(resolve => setTimeout(resolve, 3000));
         } catch (e) {
             console.log('No video element found or already playing');
         }
@@ -74,5 +92,5 @@ app.post('/extract-video', async (req, res) => {
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
-    console.log(`Server running on http://localhost:${PORT}`);
+    console.log(`Server running on port ${PORT}`);
 });

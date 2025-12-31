@@ -117,7 +117,7 @@
                 type="text" 
                 id="adUrl" 
                 placeholder="https://www.facebook.com/ads/library/?id=..." 
-                value="https://www.facebook.com/ads/library/?id=3256450231190320"
+                value=""
             >
         </div>
         
@@ -151,11 +151,11 @@
             // Start loading
             btn.disabled = true;
             btn.textContent = 'Extracting...';
-            showStatus('🔄 Processing your request... This may take 10-30 seconds', 'loading');
+            showStatus('🔄 Processing your request... This may take 30-60 seconds (first time slower)', 'loading');
             
             try {
-                // Call backend API
-                const response = await fetch('http://localhost:3000/extract-video', {
+                // Call backend API - UPDATED URL
+                const response = await fetch('https://facebook-video-downloder-e97t.onrender.com/extract-video', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'
@@ -176,7 +176,7 @@
                     showStatus('❌ ' + (data.error || 'Failed to extract video. Try again.'), 'error');
                 }
             } catch (error) {
-                showStatus('❌ Error: ' + error.message + '. Make sure backend server is running!', 'error');
+                showStatus('❌ Error: ' + error.message + '. Server may be starting up (cold start), please try again in 30 seconds.', 'error');
             } finally {
                 btn.disabled = false;
                 btn.textContent = 'Extract Video';
