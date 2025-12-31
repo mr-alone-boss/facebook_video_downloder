@@ -43,8 +43,8 @@ app.post('/extract-video', async (req, res) => {
             timeout: 60000 
         });
         
-        // Wait a bit for video to load
-        await page.waitForTimeout(5000);
+        // Wait for video to load - FIXED LINE
+        await new Promise(resolve => setTimeout(resolve, 5000));
         
         // Try to find and click play button if exists
         try {
@@ -52,7 +52,7 @@ app.post('/extract-video', async (req, res) => {
                 const video = document.querySelector('video');
                 if (video) video.play();
             });
-            await page.waitForTimeout(3000);
+            await new Promise(resolve => setTimeout(resolve, 3000)); // FIXED LINE
         } catch (e) {
             console.log('No video element found or already playing');
         }
@@ -72,7 +72,7 @@ app.post('/extract-video', async (req, res) => {
     }
 });
 
-const PORT = 3000;
+const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
     console.log(`Server running on http://localhost:${PORT}`);
 });
