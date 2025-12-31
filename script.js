@@ -25,10 +25,9 @@ app.post('/extract-video', async (req, res) => {
     try {
         console.log('Launching browser...');
         
-        // UPDATED: Render-compatible Puppeteer launch config
+        // FIXED: Let Puppeteer use its bundled Chromium (don't specify executablePath)
         browser = await puppeteer.launch({
-            headless: true,
-            executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || '/usr/bin/google-chrome-stable',
+            headless: 'new',
             args: [
                 '--no-sandbox', 
                 '--disable-setuid-sandbox',
@@ -37,7 +36,8 @@ app.post('/extract-video', async (req, res) => {
                 '--no-first-run',
                 '--no-zygote',
                 '--single-process',
-                '--disable-gpu'
+                '--disable-gpu',
+                '--disable-features=VizDisplayCompositor'
             ]
         });
         
